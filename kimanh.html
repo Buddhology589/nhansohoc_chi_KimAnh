@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo Nhân số học - Nguyễn Kim Anh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals & Earth Tones (Background: #FAF9F6, Accents: #8B7355, #6B705C, Text: #2D3748) -->
+    <!-- Application Structure Plan: The SPA uses a dashboard structure. It starts with an executive summary and an interactive audio player. The core of the application is a master-detail view (tabs) allowing the user to click through their core numerology numbers (Life Path, Destiny, etc.) to reveal specific insights without overwhelming the page. Below this, a visual analytics section uses charts to map out life peaks (timeline) and personality distribution, providing a macro-view of the data. This structure ensures a logical flow from top-level summary down to detailed analysis and visual synthesis. -->
+    <!-- Visualization & Content Choices: 
+         1. Core Numbers -> Dashboard Tabs (HTML/JS) -> Goal: Organize complex text into digestible chunks. Interaction: Click to reveal.
+         2. Life Peaks -> Line Chart (Chart.js) -> Goal: Change/Timeline. Shows the progression of life phases over time. Interaction: Hover for age/details.
+         3. Personality Traits -> Radar Chart (Chart.js) -> Goal: Compare. Visually balances different aspects of the personality.
+         NO SVG/Mermaid used.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            background-color: #FAF9F6;
+            color: #2D3748;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            scroll-behavior: smooth;
+        }
+        .accent-bg { background-color: #8B7355; }
+        .accent-text { color: #8B7355; }
+        .secondary-bg { background-color: #6B705C; }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .nav-button.active {
+            background-color: #8B7355;
+            color: white;
+            border-color: #8B7355;
+        }
+        
+        .number-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #FAF9F6;
+            color: #8B7355;
+            font-weight: bold;
+            font-size: 1.25rem;
+            border: 2px solid #8B7355;
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 115, 85, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(139, 115, 85, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 115, 85, 0); }
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen pb-12">
+
+    <header class="w-full accent-bg text-white py-12 px-4 shadow-md relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full opacity-10" style="background-image: radial-gradient(circle, #ffffff 2px, transparent 2px); background-size: 20px 20px;"></div>
+        <div class="max-w-6xl mx-auto relative z-10 text-center">
+            <h1 class="text-sm uppercase tracking-widest mb-2 font-semibold">Báo Cáo Nhân Số Học Chuyên Sâu</h1>
+            <h2 class="text-4xl md:text-5xl font-bold mb-4">Nguyễn Kim Anh</h2>
+            <p class="text-lg md:text-xl opacity-90 mb-8">Ngày sinh: 05 / 11 / 1991</p>
+            
+            <div class="inline-block bg-white/20 p-1 rounded-full backdrop-blur-sm">
+                <button id="btnPlayAudio" class="flex items-center space-x-3 bg-white accent-text px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition duration-300 shadow-lg pulse-animation">
+                    <span class="text-xl">▶</span>
+                    <span>Nghe Audio Tổng Quan</span>
+                </button>
+            </div>
+            <p id="audioStatus" class="mt-3 text-sm opacity-80 hidden">Đang chuẩn bị âm thanh...</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 -mt-8 relative z-20">
+        
+        <section class="glass-panel rounded-2xl p-6 md:p-8 mb-8">
+            <h3 class="text-2xl font-bold mb-4 border-b pb-2">1. Chỉ Số Cốt Lõi</h3>
+            <p class="text-gray-600 mb-6 leading-relaxed">
+                Phần này trình bày các con số quan trọng nhất hình thành nên tính cách, mục đích sống và nội tâm của bạn. Nhấp vào từng thẻ bên trái để khám phá chi tiết ý nghĩa của từng con số được phân tích riêng cho Nguyễn Kim Anh.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div class="md:col-span-4 flex flex-col space-y-3" id="navContainer">
+                </div>
+
+                <div class="md:col-span-8 glass-panel rounded-xl p-6 bg-white shadow-sm border border-gray-100 h-full">
+                    <div id="contentDisplay" class="h-full flex flex-col">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-panel rounded-2xl p-6 md:p-8 mb-8">
+            <h3 class="text-2xl font-bold mb-4 border-b pb-2">2. Bản Đồ Cuộc Đời & Năng Lực</h3>
+            <p class="text-gray-600 mb-8 leading-relaxed">
+                Phân tích trực quan về tiến trình phát triển qua 4 đỉnh cao cuộc đời và sự phân bổ các nhóm năng lực tự nhiên của bạn. Biểu đồ đường thể hiện các cột mốc tuổi tác, biểu đồ mạng nhện đánh giá mức độ mạnh yếu của các đặc điểm tính cách.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div class="flex flex-col items-center">
+                    <h4 class="text-xl font-bold mb-2 text-center">4 Đỉnh Cao Cuộc Đời</h4>
+                    <p class="text-sm text-gray-500 mb-4 text-center">Tiến trình phát triển qua các giai đoạn 9 năm</p>
+                    <div class="chart-container w-full">
+                        <canvas id="lifePeaksChart"></canvas>
+                    </div>
+                    <div class="mt-6 text-sm text-gray-700 bg-gray-50 p-4 rounded-lg w-full">
+                        <p><strong>Đỉnh 1 (Tuổi 27 - 2018): Số 7</strong> - Giai đoạn học hỏi, phát triển trí tuệ và tâm linh sâu sắc.</p>
+                        <p class="mt-2"><strong>Đỉnh 2 (Tuổi 36 - 2027): Số 7</strong> - Tiếp tục củng cố kiến thức, trở thành chuyên gia trong lĩnh vực đang theo đuổi.</p>
+                        <p class="mt-2"><strong>Đỉnh 3 (Tuổi 45 - 2036): Số 5</strong> - Giai đoạn của sự thay đổi, tự do, mở rộng các mối quan hệ và trải nghiệm mới.</p>
+                        <p class="mt-2"><strong>Đỉnh 4 (Tuổi 54 - 2045): Số 4</strong> - Thời kỳ thiết lập sự ổn định, kỷ luật, xây dựng nền tảng vững chắc và để lại di sản.</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <h4 class="text-xl font-bold mb-2 text-center">Mô Hình Phân Bổ Năng Lực</h4>
+                    <p class="text-sm text-gray-500 mb-4 text-center">Sự cân bằng giữa các khía cạnh (Dựa trên bộ số 9-7-5)</p>
+                    <div class="chart-container w-full">
+                        <canvas id="traitsRadarChart"></canvas>
+                    </div>
+                    <div class="mt-6 text-sm text-gray-700 bg-gray-50 p-4 rounded-lg w-full">
+                        <p>Biểu đồ cho thấy bạn có <strong>Trực giác & Đồng cảm (Số 9)</strong> và <strong>Phân tích logic (Số 7)</strong> cực kỳ mạnh mẽ. Sự kết hợp này tạo ra một nhà tư tưởng có chiều sâu nhân văn. Năng lượng <strong>Sáng tạo/Thích nghi (Số 5)</strong> giúp bạn linh hoạt, tuy nhiên khía cạnh <strong>Kỷ luật/Thực tế</strong> cần được rèn luyện thêm để hiện thực hóa các lý tưởng lớn.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-panel rounded-2xl p-6 md:p-8 bg-gradient-to-br from-white to-[#f5f0ea]">
+            <h3 class="text-2xl font-bold mb-4 border-b pb-2 accent-text">3. Dự Báo Năm 2026: Năm Cá Nhân Số 8</h3>
+            <p class="text-gray-600 mb-6 leading-relaxed">
+                Năm cá nhân được tính bằng: Ngày sinh (5) + Tháng sinh (1+1) + Năm hiện tại (2+0+2+6) = 17 => 8.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#8B7355]">
+                    <div class="text-3xl mb-3">⚖️</div>
+                    <h4 class="font-bold text-lg mb-2">Từ Khóa Trong Năm</h4>
+                    <p class="text-sm text-gray-600">Quyền lực, tài chính, thành tựu, sự độc lập, gặt hái kết quả, phần thưởng, luật nhân quả.</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#6B705C]">
+                    <div class="text-3xl mb-3">📈</div>
+                    <h4 class="font-bold text-lg mb-2">Cơ Hội (Nên làm)</h4>
+                    <p class="text-sm text-gray-600">Đầu tư, kinh doanh, yêu cầu thăng tiến, mở rộng quy mô, thiết lập sự độc lập tài chính, quản lý tài sản.</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-400">
+                    <div class="text-3xl mb-3">⚠️</div>
+                    <h4 class="font-bold text-lg mb-2">Thách Thức (Cần tránh)</h4>
+                    <p class="text-sm text-gray-600">Tham công tiếc việc, lạm dụng quyền lực, mất cân bằng giữa vật chất và tinh thần (hãy nhớ bản chất số 9 của bạn).</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 text-gray-500 text-sm">
+        <p>Báo cáo phân tích tương tác được tạo riêng cho Nguyễn Kim Anh.</p>
+    </footer>
+
+    <script>
+        const apiKey = ""; 
+
+        const reportData = [
+            {
+                id: 'duong-doi',
+                title: 'Đường Đời',
+                number: 9,
+                icon: '🌍',
+                shortDesc: 'Người truyền cảm hứng, lòng nhân đạo.',
+                content: `
+                    <h4 class="text-2xl font-bold accent-text mb-2 flex items-center"><span class="number-badge mr-3">9</span> Đường Đời Số 9</h4>
+                    <p class="text-gray-700 italic mb-4">Vai trò của bạn trong cuộc đời này là trở thành người dẫn dắt bằng tình yêu thương và sự thấu cảm.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h5 class="font-bold text-gray-800">Đặc điểm nổi bật:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Bạn sở hữu lòng trắc ẩn sâu sắc và lý tưởng cao đẹp. Kim Anh thường quan tâm đến cộng đồng, cái đẹp và sự hoàn mỹ. Bạn có khả năng nhìn nhận bức tranh tổng thể và truyền cảm hứng cho người khác bằng sự bao dung của mình.</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded text-sm">
+                            <strong class="text-green-800">Điểm mạnh:</strong> Vị tha, lãng mạn, sáng tạo, có tầm nhìn xa, dễ thu hút sự chú ý và tình cảm của người khác.
+                        </div>
+                        <div class="bg-red-50 p-3 rounded text-sm">
+                            <strong class="text-red-800">Điểm yếu:</strong> Dễ bị lợi dụng tình cảm, đôi khi quá lý tưởng hóa dẫn đến thất vọng thực tế. Ôm đồm nhiều việc.
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-gray-800">Lời khuyên:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Bài học lớn nhất của Số 9 là học cách tha thứ và buông bỏ quá khứ. Hãy cống hiến mà không kỳ vọng sự đền đáp, khi đó vũ trụ sẽ mang lại cho bạn những phần thưởng xứng đáng.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'su-menh',
+                title: 'Sứ Mệnh',
+                number: 7,
+                icon: '🦉',
+                shortDesc: 'Nhà thông thái, người tìm kiếm chân lý.',
+                content: `
+                    <h4 class="text-2xl font-bold accent-text mb-2 flex items-center"><span class="number-badge mr-3">7</span> Sứ Mệnh Số 7</h4>
+                    <p class="text-gray-700 italic mb-4">Đích đến và cách bạn thể hiện bản thân với thế giới là thông qua trí tuệ và sự chiêm nghiệm.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h5 class="font-bold text-gray-800">Đặc điểm nổi bật:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Sứ mệnh của bạn là trở thành một chuyên gia, một người thầy, hoặc một nhà nghiên cứu. Bạn không chấp nhận những điều hời hợt mà luôn muốn đào sâu tìm hiểu bản chất của mọi vấn đề, từ khoa học đến tâm linh.</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded text-sm">
+                            <strong class="text-green-800">Điểm mạnh:</strong> Trí tuệ uyên bác, khả năng phân tích logic xuất sắc, trực giác nhạy bén, độc lập trong tư duy.
+                        </div>
+                        <div class="bg-red-50 p-3 rounded text-sm">
+                            <strong class="text-red-800">Điểm yếu:</strong> Dễ thu mình lại, đôi khi quá đa nghi, khắt khe với bản thân và người khác, khó mở lòng chia sẻ cảm xúc.
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-gray-800">Lời khuyên:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Sự kết hợp giữa Đường đời 9 (Nhân đạo) và Sứ mệnh 7 (Trí tuệ) biến bạn thành một người vừa có tâm vừa có tầm. Hãy dành thời gian tĩnh lặng cho bản thân để nạp năng lượng, sau đó mang những kiến thức sâu sắc của mình ra giúp đời.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'linh-hon',
+                title: 'Linh Hồn',
+                number: 9,
+                icon: '❤️',
+                shortDesc: 'Khát khao cống hiến và yêu thương.',
+                content: `
+                    <h4 class="text-2xl font-bold accent-text mb-2 flex items-center"><span class="number-badge mr-3">9</span> Linh Hồn Số 9</h4>
+                    <p class="text-gray-700 italic mb-4">Điều thực sự khiến Kim Anh thỏa mãn từ sâu thẳm bên trong.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h5 class="font-bold text-gray-800">Khao khát sâu thẳm:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Sự đồng điệu giữa Đường đời 9 và Linh hồn 9 khẳng định chắc chắn bản chất thiện lương của bạn. Bạn khao khát mãnh liệt được đóng góp cho xã hội, được nhìn thấy những người xung quanh hạnh phúc và tốt đẹp hơn.</p>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded text-sm">
+                            <p class="text-gray-700">Bạn sẽ cảm thấy trống rỗng nếu chỉ theo đuổi vật chất cá nhân. Hạnh phúc thực sự của bạn đến từ những dự án vì cộng đồng, những công việc mang lại giá trị tinh thần hoặc chữa lành cho người khác.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'nhan-cach',
+                title: 'Nhân Cách',
+                number: 7,
+                icon: '🎭',
+                shortDesc: 'Bề ngoài uyên bác, kín đáo, bí ẩn.',
+                content: `
+                    <h4 class="text-2xl font-bold accent-text mb-2 flex items-center"><span class="number-badge mr-3">7</span> Nhân Cách Số 7</h4>
+                    <p class="text-gray-700 italic mb-4">Cách người khác cảm nhận về bạn trong những lần tiếp xúc đầu tiên.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h5 class="font-bold text-gray-800">Ấn tượng ngoại cảnh:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Người khác thường thấy Kim Anh là một người điềm tĩnh, có phần khó đoán và bí ẩn. Bạn toát lên vẻ tri thức, thanh lịch và độc lập. Bạn có xu hướng quan sát, đánh giá tình hình kỹ lưỡng trước khi tham gia vào cuộc trò chuyện.</p>
+                        </div>
+                        <div class="bg-gray-50 border-l-4 border-gray-400 p-3 rounded text-sm">
+                            <p class="text-gray-700">Lưu ý: Sự kín đáo này đôi khi khiến người khác e ngại tiến lại gần bạn. Hãy mỉm cười nhiều hơn (kích hoạt số 9) để phá vỡ lớp vỏ bọc lạnh lùng của số 7.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'ngay-sinh',
+                title: 'Ngày Sinh',
+                number: 5,
+                icon: '✨',
+                shortDesc: 'Năng lượng linh hoạt, tự do, trải nghiệm.',
+                content: `
+                    <h4 class="text-2xl font-bold accent-text mb-2 flex items-center"><span class="number-badge mr-3">5</span> Ngày Sinh Số 5</h4>
+                    <p class="text-gray-700 italic mb-4">Món quà tự nhiên mà bạn mang theo khi chào đời (Sinh ngày 05).</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h5 class="font-bold text-gray-800">Năng lực bẩm sinh:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Bạn có khả năng thích nghi tuyệt vời với mọi hoàn cảnh. Số 5 mang lại cho bạn sự tò mò, thích khám phá, đi du lịch và trải nghiệm những điều mới lạ. Trong bộ số nhiều 7 và 9 có phần trầm tĩnh, số 5 ngày sinh là luồng gió mát mang lại sự năng động, hoạt bát và sức hút cá nhân cho bạn.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'thai-do',
+                title: 'Thái Độ',
+                number: 7,
+                icon: '🔍',
+                shortDesc: 'Phân tích, quan sát trước khi hành động.',
+                content: `
+                    <h4 class="text-2xl font-bold accent-text mb-2 flex items-center"><span class="number-badge mr-3">7</span> Thái Độ Số 7</h4>
+                    <p class="text-gray-700 italic mb-4">Cách bạn phản ứng tự động với các tình huống mới trong cuộc sống.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <h5 class="font-bold text-gray-800">Phản xạ tự nhiên:</h5>
+                            <p class="text-gray-600 text-sm mt-1">Khi đối mặt với vấn đề mới, thái độ đầu tiên của bạn luôn là đặt câu hỏi và phân tích. Bạn không tin tưởng ngay lập tức mà cần thời gian để kiểm chứng thông tin, thu thập bằng chứng. Điều này giúp bạn tránh được nhiều rủi ro, nhưng đôi khi cũng làm chậm lại các cơ hội đến bất ngờ.</p>
+                        </div>
+                    </div>
+                `
+            }
+        ];
+
+        let currentActiveId = reportData[0].id;
+
+        function renderNavigation() {
+            const container = document.getElementById('navContainer');
+            container.innerHTML = '';
+            
+            reportData.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = `nav-button w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 flex items-center space-x-3 ${item.id === currentActiveId ? 'active shadow-md' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'}`;
+                btn.onclick = () => selectTab(item.id);
+                
+                btn.innerHTML = `
+                    <span class="text-2xl">${item.icon}</span>
+                    <div>
+                        <div class="font-bold">${item.title} <span class="ml-1 text-sm bg-gray-200 text-gray-800 rounded-full px-2 py-0.5">${item.number}</span></div>
+                        <div class="text-xs opacity-80 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">${item.shortDesc}</div>
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectTab(id) {
+            currentActiveId = id;
+            renderNavigation();
+            
+            const display = document.getElementById('contentDisplay');
+            const data = reportData.find(d => d.id === id);
+            
+            display.style.opacity = '0';
+            setTimeout(() => {
+                display.innerHTML = data.content;
+                display.style.transition = 'opacity 0.3s ease-in-out';
+                display.style.opacity = '1';
+            }, 150);
+        }
+
+        function initCharts() {
+            // Life Peaks Line Chart
+            const peaksCtx = document.getElementById('lifePeaksChart').getContext('2d');
+            new Chart(peaksCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Tuổi 27 (2018)', 'Tuổi 36 (2027)', 'Tuổi 45 (2036)', 'Tuổi 54 (2045)'],
+                    datasets: [{
+                        label: 'Con số đỉnh cao',
+                        data: [7, 7, 5, 4],
+                        borderColor: '#8B7355',
+                        backgroundColor: 'rgba(139, 115, 85, 0.2)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#6B705C',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 10,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => context[0].label,
+                                label: (context) => `Đỉnh cao số: ${context.parsed.y}`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Personality Traits Radar Chart
+            const radarCtx = document.getElementById('traitsRadarChart').getContext('2d');
+            new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        'Trực giác / Thấu cảm (9)', 
+                        'Phân tích / Logic (7)', 
+                        'Sáng tạo / Thích nghi (5)', 
+                        'Lãnh đạo / Quyết đoán', 
+                        'Kỷ luật / Thực tế'
+                    ],
+                    datasets: [{
+                        label: 'Mức độ thể hiện',
+                        data: [9.5, 9.0, 7.5, 6.0, 5.0], // Estimated based on 9-7-9-7-5 numerology
+                        backgroundColor: 'rgba(107, 112, 92, 0.2)',
+                        borderColor: '#6B705C',
+                        pointBackgroundColor: '#8B7355',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#8B7355',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            suggestedMin: 0,
+                            suggestedMax: 10,
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Audio System
+        const btnPlay = document.getElementById('btnPlayAudio');
+        const statusText = document.getElementById('audioStatus');
+        let isPlaying = false;
+
+        const overviewText = "Chào Nguyễn Kim Anh. Chào mừng bạn đến với báo cáo nhân số học chuyên sâu. Với con số chủ đạo 9 và sứ mệnh 7, bạn là người mang tâm hồn nhân đạo sâu sắc, kết hợp với trí tuệ uyên bác và khả năng phân tích tuyệt vời. Bạn luôn khao khát được cống hiến và giúp đỡ người khác. Sự kết hợp với ngày sinh số 5 mang lại cho bạn sự linh hoạt và yêu thích trải nghiệm mới. Hiện tại, bạn đang trong năm cá nhân số 8 của năm 2026, đây là một năm vàng để gặt hái thành tựu về tài chính và thiết lập sự quyền lực sau những nỗ lực dài hạn. Hãy khám phá chi tiết báo cáo trên màn hình để hiểu rõ hơn về bản thân nhé.";
+
+        async function playAudio() {
+            if (isPlaying) {
+                window.speechSynthesis.cancel();
+                btnPlay.innerHTML = '<span class="text-xl">▶</span><span>Nghe Audio Tổng Quan</span>';
+                btnPlay.classList.add('pulse-animation');
+                isPlaying = false;
+                statusText.classList.add('hidden');
+                return;
+            }
+
+            isPlaying = true;
+            btnPlay.innerHTML = '<span class="text-xl">■</span><span>Dừng Audio</span>';
+            btnPlay.classList.remove('pulse-animation');
+            statusText.classList.remove('hidden');
+            statusText.innerText = 'Đang xử lý âm thanh...';
+
+            try {
+                // Try Gemini TTS First if API key structure is expected by environment
+                if (typeof apiKey !== 'undefined' && apiKey !== "") {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: overviewText }] }],
+                            generationConfig: {
+                                responseModalities: ["AUDIO"],
+                                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } }
+                            },
+                            model: "gemini-2.5-flash-preview-tts"
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+                        
+                        if (inlineData && inlineData.data) {
+                            statusText.innerText = 'Đang phát âm thanh...';
+                            const base64Data = inlineData.data;
+                            // Convert Base64 PCM16 to WAV
+                            const binaryString = window.atob(base64Data);
+                            const len = binaryString.length;
+                            const bytes = new Uint8Array(len);
+                            for (let i = 0; i < len; i++) {
+                                bytes[i] = binaryString.charCodeAt(i);
+                            }
+                            
+                            const sampleRate = 24000; 
+                            const numChannels = 1;
+                            const bitsPerSample = 16;
+                            const blockAlign = numChannels * (bitsPerSample / 8);
+                            const byteRate = sampleRate * blockAlign;
+                            const dataSize = bytes.length;
+                            
+                            const buffer = new ArrayBuffer(44 + dataSize);
+                            const view = new DataView(buffer);
+                            
+                            const writeString = (view, offset, string) => {
+                                for (let i = 0; i < string.length; i++) {
+                                    view.setUint8(offset + i, string.charCodeAt(i));
+                                }
+                            };
+                            
+                            writeString(view, 0, 'RIFF');
+                            view.setUint32(4, 36 + dataSize, true);
+                            writeString(view, 8, 'WAVE');
+                            writeString(view, 12, 'fmt ');
+                            view.setUint32(16, 16, true);
+                            view.setUint16(20, 1, true);
+                            view.setUint16(22, numChannels, true);
+                            view.setUint32(24, sampleRate, true);
+                            view.setUint32(28, byteRate, true);
+                            view.setUint16(32, blockAlign, true);
+                            view.setUint16(34, bitsPerSample, true);
+                            writeString(view, 36, 'data');
+                            view.setUint32(40, dataSize, true);
+                            
+                            new Uint8Array(buffer, 44).set(bytes);
+                            
+                            const blob = new Blob([buffer], { type: 'audio/wav' });
+                            const url = URL.createObjectURL(blob);
+                            const audio = new Audio(url);
+                            
+                            audio.onended = resetAudioButton;
+                            audio.play();
+                            return;
+                        }
+                    }
+                }
+                
+                // Fallback to Web Speech API
+                throw new Error("Gemini API not ready, falling back to Web Speech");
+
+            } catch (error) {
+                console.log("Using browser TTS fallback:", error);
+                statusText.innerText = 'Đang phát qua trình duyệt...';
+                const utterance = new SpeechSynthesisUtterance(overviewText);
+                utterance.lang = 'vi-VN';
+                utterance.rate = 1.0;
+                
+                utterance.onend = resetAudioButton;
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function resetAudioButton() {
+            isPlaying = false;
+            btnPlay.innerHTML = '<span class="text-xl">▶</span><span>Nghe Audio Tổng Quan</span>';
+            btnPlay.classList.add('pulse-animation');
+            statusText.classList.add('hidden');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNavigation();
+            selectTab(currentActiveId);
+            initCharts();
+            
+            btnPlay.addEventListener('click', playAudio);
+        });
+
+    </script>
+</body>
+</html>
